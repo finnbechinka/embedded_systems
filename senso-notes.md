@@ -1,0 +1,25 @@
+### States
+- standby
+  - leds blinken der reihe nach
+  - grüner knopf druck ->  partie bei lv 1 starten
+- demonstration
+  - blau und gelb leuchten geleichzeiting
+  - n lange zufällige sequenz von t lange leuchtenten leds
+  - nach sequenz gehen blinken alle led gleichzeiting auf -> dann übergang in nachahmphase
+- imitation
+  - t zeit pro eingabe
+  - wenn flasch oder zu spät -> übergehen in verloren
+  - wenn korekt richtige led leuchtet auf
+  - wenn led erlischt nächste eingabe
+  - wenn alle richtig -> übergang in transition
+- transition
+  - grün,gelb und blau,rot leuchten zwei mal abwechselnt auf
+  - wenn level >10 -> übergang nach end
+  - sonst level erhöhen, n++ und t = .9 * t
+- lose
+  - grün und rot blicken zwei mal
+  - erreichtes level binärcodiert anzeigen
+  - danach -> übergang in standby
+- end
+  - led sequenz
+  - danach -> standby
