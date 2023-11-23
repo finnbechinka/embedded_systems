@@ -316,6 +316,9 @@ void demonstration_sequence(void)
 /**
  * @brief Imitation sequence.
  *
+ * !TODO Sometimes clicking right after the led is off after a correct guess
+ * !the game counts it as a wrong guess.
+ *
  *	Following state is STATE_TRANSITION or STATE_LOST.
  */
 void imitation_sequence(void)
