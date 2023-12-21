@@ -11,41 +11,37 @@
 #include "xmas.h"
 #include "song.h"
 
-#define NOP_ASM \
-	asm volatile( \
-			"nop\n")
-
 #define SEND_BIT1                                          \
 	REG(GPIO_BASE + GPIO_OUTPUT_VAL) |= (1U << LED_STRIPE);  \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
 	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1U << LED_STRIPE); \
-	NOP_ASM;                                                 \
-	NOP_ASM;
+	asm("nop\n");                                            \
+	asm("nop\n");
 
 #define SEND_BIT0                                          \
 	REG(GPIO_BASE + GPIO_OUTPUT_VAL) |= (1U << LED_STRIPE);  \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
 	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1U << LED_STRIPE); \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;                                                 \
-	NOP_ASM;
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");                                            \
+	asm("nop\n");
 
 #define SEND_BYTE1 SEND_BIT1 SEND_BIT1 SEND_BIT1 SEND_BIT1 SEND_BIT1 SEND_BIT1 SEND_BIT1 SEND_BIT1
 
@@ -106,15 +102,23 @@ void play(void)
 		float ms = (duration[i] * 1000.0);
 		int note = song[i];
 
-		double period = (1.0 / 2000.0);
-		period = period * 1000.0;
-		double half_period = (period / 2.0);
+		// double period = (1.0 / note);
+		// double half_period = (period / 2.0);
+		// double periods = period * note;
+
+		advance_stripe((int)i);
+
+		// for (int i = 0; i < periods; i++)
+		// {
+		// 	REG(GPIO_BASE + GPIO_OUTPUT_VAL) &= ~(1U << P_BUZZER);
+		// 	sleep(half_period);
+		// 	REG(GPIO_BASE + GPIO_OUTPUT_VAL) |= (1U << P_BUZZER);
+		// 	sleep(half_period);
+		// }
 
 		const uint64_t *mtime = (uint64_t *)(CLINT_CTRL_ADDR + CLINT_MTIME);
 		volatile double stop = (double)*mtime + (ms * (30000.0 / 1000.0));
 		double duration = (double)((1000 / (note * 2.0)) * 12U);
-
-		advance_stripe((int)i);
 
 		while (*mtime < stop)
 		{
