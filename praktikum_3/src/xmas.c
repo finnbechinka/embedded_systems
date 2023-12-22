@@ -11,6 +11,32 @@
 #include "xmas.h"
 #include "song.h"
 
+/* void x()
+{
+
+ NOT WORK, sad >:(
+	volatile uint32_t *out = (volatile uint32_t *)(GPIO_BASE + GPIO_OUTPUT_VAL);
+	volatile uint32_t op1 = (1U << LED_STRIPE);
+	volatile uint32_t op2 = ~(1U << LED_STRIPE);
+
+	asm volatile("or x0, x0, x1\n"
+							 : "=m"(out)
+							 : "r"(op1));
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("nop\n");
+	asm volatile("and x0, x0, x1\n"
+							 : "=m"(out)
+							 : "r"(op2));
+} */
+
 #define SEND_BIT1                                          \
 	REG(GPIO_BASE + GPIO_OUTPUT_VAL) |= (1U << LED_STRIPE);  \
 	asm("nop\n");                                            \
