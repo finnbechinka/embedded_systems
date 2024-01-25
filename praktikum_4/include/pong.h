@@ -12,10 +12,10 @@
 #define PLIC_THRESH 0x200000
 #define PLIC_CLAIM 0x200004
 
-#define BTN_GREEN 18
-#define BTN_BLUE 19
-#define BTN_YELLOW 20
-#define BTN_RED 21
+#define BTN_GREEN 18UL
+#define BTN_BLUE 19UL
+#define BTN_YELLOW 20UL
+#define BTN_RED 21UL
 
 #define PADDING 10
 #define SEGMENT_LENGTH 5
@@ -43,23 +43,13 @@ typedef struct
   int score_updated;
 } Player_t;
 
-Ball_t ball;
-Player_t p_left;
-Player_t p_right;
-Point_t p_left_score[7];
-Point_t p_right_score[7];
-
-volatile SemaphoreHandle_t xPixelMutex;
-volatile SemaphoreHandle_t xInterruptSemaphore;
-volatile SemaphoreHandle_t xDrawMutex;
-
-void irq_handler(void);
-void init_btn(int btn);
-void init(void);
-void task_update_ball(void *pvParameters);
-void task_update_players(void *pvParameters);
-void task_update_score(void *pvParameters);
-void task_draw(void *pvParameters);
-void set_pixel(uint8_t x, uint8_t y, uint8_t p);
-void draw_line(Point_t p, int len, int is_horizontal, int on);
+extern void irq_handler(void);
+extern void init_btn(int btn);
+extern void init(void);
+extern void task_update_ball(void *pvParameters);
+extern void task_update_players(void *pvParameters);
+extern void task_update_score(void *pvParameters);
+extern void task_draw(void *pvParameters);
+extern void set_pixel(uint8_t x, uint8_t y, uint8_t p);
+extern void draw_line(Point_t p, int len, int is_horizontal, int on);
 #endif

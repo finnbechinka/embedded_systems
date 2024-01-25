@@ -17,6 +17,23 @@
 #include "font.h"
 #include "framebuffer.h"
 
+static volatile SemaphoreHandle_t xPixelMutex;
+// static volatile SemaphoreHandle_t xInterruptSemaphore;
+static volatile SemaphoreHandle_t xDrawMutex;
+
+static Ball_t ball;
+static Player_t p_left;
+static Player_t p_right;
+static Point_t p_left_score[7];
+static Point_t p_right_score[7];
+
+void set_pixel(uint8_t x, uint8_t y, uint8_t p)
+{
+	(void)xSemaphoreTake(xPixelMutex, portMAX_DELAY);
+	fb_set_pixel(x, y, p);
+	(void)xSemaphoreGive(xPixelMutex);
+}
+
 void draw_line(Point_t p, int len, int is_horizontal, int on)
 {
 	int i;
@@ -36,26 +53,20 @@ void draw_line(Point_t p, int len, int is_horizontal, int on)
 	}
 }
 
-void set_pixel(uint8_t x, uint8_t y, uint8_t p)
-{
-	xSemaphoreTake(xPixelMutex, portMAX_DELAY);
-	fb_set_pixel(x, y, p);
-	xSemaphoreGive(xPixelMutex);
-}
-
 void task_draw(void *pvParameters)
 {
+	(void)pvParameters;
 	for (;;)
 	{
 		// if (xSemaphoreTake(xInterruptSemaphore, pdMS_TO_TICKS(1)) == pdFALSE)
 		// {
 		// 	return;
 		// }
-		xSemaphoreTake(xDrawMutex, portMAX_DELAY);
-		xSemaphoreTake(xPixelMutex, portMAX_DELAY);
+		(void)xSemaphoreTake(xDrawMutex, portMAX_DELAY);
+		(void)xSemaphoreTake(xPixelMutex, portMAX_DELAY);
 		fb_flush();
-		xSemaphoreGive(xPixelMutex);
-		xSemaphoreGive(xDrawMutex);
+		(void)xSemaphoreGive(xPixelMutex);
+		(void)xSemaphoreGive(xDrawMutex);
 		// xSemaphoreGive(xInterruptSemaphore);
 		vTaskDelay(pdMS_TO_TICKS(20));
 	}
@@ -63,9 +74,10 @@ void task_draw(void *pvParameters)
 
 void task_update_score(void *pvParameters)
 {
+	(void)pvParameters;
 	for (;;)
 	{
-		xSemaphoreTake(xDrawMutex, portMAX_DELAY);
+		(void)xSemaphoreTake(xDrawMutex, portMAX_DELAY);
 		if (p_left.score_updated == 0)
 		{
 			int i;
@@ -230,26 +242,28 @@ void task_update_score(void *pvParameters)
 			}
 			p_right.score_updated = 1;
 		}
-		xSemaphoreGive(xDrawMutex);
+		(void)xSemaphoreGive(xDrawMutex);
 	}
 }
 
 void task_update_ball(void *pvParameters)
 {
+	(void)pvParameters;
 	for (;;)
 	{
 		// if (xSemaphoreTake(xInterruptSemaphore, pdMS_TO_TICKS(1)) == pdFALSE)
 		// {
 		// 	continue;
 		// }
-		xSemaphoreTake(xDrawMutex, portMAX_DELAY);
-		int x, y = 0;
+		(void)xSemaphoreTake(xDrawMutex, portMAX_DELAY);
+		int x = 0;
+		int y = 0;
 		// remove old ball
 		for (y = -ball.radius; y <= ball.radius; y++)
 		{
 			for (x = -ball.radius; x <= ball.radius; x++)
 			{
-				if (x * x + y * y <= ball.radius * ball.radius)
+				if (((x * x) + (y * y)) <= (ball.radius * ball.radius))
 				{
 					set_pixel(ball.pos.x + x, ball.pos.y + y, 0);
 				}
@@ -257,11 +271,11 @@ void task_update_ball(void *pvParameters)
 		}
 
 		// check if ball is past top or bottom
-		if (ball.pos.y + ball.radius >= DISP_H - PADDING)
+		if ((ball.pos.y + ball.radius) >= (DISP_H - PADDING))
 		{
 			ball.dir.y = -ball.dir.y;
 		}
-		if (ball.pos.y - ball.radius <= PADDING)
+		if ((ball.pos.y - ball.radius) <= PADDING)
 		{
 			ball.dir.y = -ball.dir.y;
 		}
@@ -278,7 +292,7 @@ void task_update_ball(void *pvParameters)
 		}
 
 		// check if ball is behing right player
-		else if (ball.pos.x > p_right.pos.x + p_right.width)
+		else if (ball.pos.x > (p_right.pos.x + p_right.width))
 		{
 			p_left.score++;
 			p_left.score_updated = 0;
@@ -288,21 +302,28 @@ void task_update_ball(void *pvParameters)
 			ball.dir.x = 1;
 		}
 		// check for collisions
+
 		else if (
-				(ball.pos.x - ball.radius <= p_left.pos.x + p_left.width) &&
-				(ball.pos.y + ball.radius >= p_left.pos.y - p_left.height / 2) &&
-				(ball.pos.y - ball.radius <= p_left.pos.y + p_left.height / 2))
+				((ball.pos.x - ball.radius) <= (p_left.pos.x + p_left.width)) &&
+				((ball.pos.y + ball.radius) >= (p_left.pos.y - (p_left.height / 2))) &&
+				((ball.pos.y - ball.radius) <= (p_left.pos.y + (p_left.height / 2))))
 		{
 			ball.dir.x = ball.pos.x - p_left.pos.x;
 			ball.dir.y = ball.pos.y - p_left.pos.y;
 		}
 		else if (
-				(ball.pos.x + ball.radius >= p_right.pos.x - p_right.width) &&
-				(ball.pos.y + ball.radius >= p_right.pos.y - p_right.height / 2) &&
-				(ball.pos.y - ball.radius <= p_right.pos.y + p_right.height / 2))
+				((ball.pos.x + ball.radius) >= (p_right.pos.x - p_right.width)) &&
+				((ball.pos.y + ball.radius) >= (p_right.pos.y - (p_right.height / 2))) &&
+				((ball.pos.y - ball.radius) <= (p_right.pos.y + (p_right.height / 2)))
+
+		)
 		{
 			ball.dir.x = ball.pos.x - p_right.pos.x;
 			ball.dir.y = ball.pos.y - p_right.pos.y;
+		}
+		else
+		{
+			;
 		}
 		ball.pos.x += ball.dir.x;
 		ball.pos.y += ball.dir.y;
@@ -312,14 +333,13 @@ void task_update_ball(void *pvParameters)
 		{
 			for (x = -ball.radius; x <= ball.radius; x++)
 			{
-				if (x * x + y * y <= ball.radius * ball.radius)
+				if (((x * x) + (y * y)) <= (ball.radius * ball.radius))
 				{
 					set_pixel(ball.pos.x + x, ball.pos.y + y, 1);
 				}
 			}
 		}
-		// flush();
-		xSemaphoreGive(xDrawMutex);
+		(void)xSemaphoreGive(xDrawMutex);
 		// xSemaphoreGive(xInterruptSemaphore);
 		// vTaskDelay(pdMS_TO_TICKS(50));
 	}
@@ -327,14 +347,16 @@ void task_update_ball(void *pvParameters)
 
 void task_update_players(void *pvParameters)
 {
+	(void)pvParameters;
 	for (;;)
 	{
 		// if (xSemaphoreTake(xInterruptSemaphore, pdMS_TO_TICKS(1)) == pdFALSE)
 		// {
 		// 	continue;
 		// }
-		xSemaphoreTake(xDrawMutex, portMAX_DELAY);
-		int x, y;
+		(void)xSemaphoreTake(xDrawMutex, portMAX_DELAY);
+		int x = 0;
+		int y = 0;
 
 		for (y = -(p_left.height - 1) / 2; y <= (p_left.height - 1) / 2; y++)
 		{
@@ -368,8 +390,7 @@ void task_update_players(void *pvParameters)
 
 		p_left.old = p_left.pos;
 		p_right.old = p_right.pos;
-		// flush();
-		xSemaphoreGive(xDrawMutex);
+		(void)xSemaphoreGive(xDrawMutex);
 		// xSemaphoreGive(xInterruptSemaphore);
 	}
 }
@@ -381,27 +402,26 @@ void irq_handler(void)
 	// 	return;
 	// }
 	uint32_t nb = REG(PLIC_BASE + PLIC_CLAIM);
-	if (nb == (8 + BTN_GREEN))
+	if (nb == (8UL + BTN_GREEN))
 	{
 		p_left.pos.y -= 3;
 		REG(GPIO_BASE + GPIO_RISE_IP) |= (1 << BTN_GREEN);
 	}
-	if (nb == (8 + BTN_RED))
+	if (nb == (8UL + BTN_RED))
 	{
 		p_right.pos.y -= 3;
 		REG(GPIO_BASE + GPIO_RISE_IP) |= (1 << BTN_RED);
 	}
-	if (nb == (8 + BTN_BLUE))
+	if (nb == (8UL + BTN_BLUE))
 	{
 		p_left.pos.y += 3;
 		REG(GPIO_BASE + GPIO_RISE_IP) |= (1 << BTN_BLUE);
 	}
-	if (nb == (8 + BTN_YELLOW))
+	if (nb == (8UL + BTN_YELLOW))
 	{
 		p_right.pos.y += 3;
 		REG(GPIO_BASE + GPIO_RISE_IP) |= (1 << BTN_YELLOW);
 	}
-	// flush();
 	REG(PLIC_BASE + PLIC_CLAIM) = nb;
 	// xSemaphoreGive(xInterruptSemaphore);
 }
@@ -494,14 +514,14 @@ int main(void)
 {
 	xPixelMutex = xSemaphoreCreateMutex(); // only one task can access the framebuffer at a time
 	xDrawMutex = xSemaphoreCreateMutex();	 // make sure only complete objects are drawn
-	xInterruptSemaphore = xSemaphoreCreateBinary();
+	// xInterruptSemaphore = xSemaphoreCreateBinary();
 
 	init();
 
-	xTaskCreate(task_draw, "draw", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
-	xTaskCreate(task_update_players, "update_players", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
-	xTaskCreate(task_update_ball, "update_ball", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
-	xTaskCreate(task_update_score, "update_score", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	(void)xTaskCreate(task_draw, "draw", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	(void)xTaskCreate(task_update_players, "update_players", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	(void)xTaskCreate(task_update_ball, "update_ball", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	(void)xTaskCreate(task_update_score, "update_score", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
 	vTaskStartScheduler();
 
